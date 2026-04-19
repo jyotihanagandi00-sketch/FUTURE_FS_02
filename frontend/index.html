@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LeadFlow — Mini CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0a0c10; --surface:#111318; --card:#16191f; --border:#252932;
+    --accent:#f97316; --accent2:#fb923c; --green:#22c55e; --yellow:#eab308;
+    --blue:#3b82f6; --red:#ef4444; --text:#f1f5f9; --muted:#64748b;
+    --subtle:#94a3b8; --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif;
+    --radius:12px; --shadow:0 4px 24px rgba(0,0,0,.45);
+  }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse 60% 50% at 50% -10%,rgba(249,115,22,.18) 0%,transparent 70%),var(--bg);
+  }
+  .login-box { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:48px 40px; width:100%; max-width:400px; }
+  .login-logo { font-family:var(--font-head); font-size:2rem; font-weight:800; color:var(--accent); margin-bottom:6px; }
+  .login-logo span { color:var(--text); }
+  .login-sub { color:var(--muted); font-size:.9rem; margin-bottom:32px; }
+  .login-box label { display:block; font-size:.8rem; font-weight:500; color:var(--subtle); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; margin-top:18px; }
+  .login-box input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px; color:var(--text); font-family:var(--font-body); font-size:.95rem; outline:none; transition:border-color .2s; }
+  .login-box input:focus { border-color:var(--accent); }
+  .login-err { color:var(--red); font-size:.82rem; margin-top:8px; min-height:18px; }
+  .btn-primary { width:100%; margin-top:24px; background:var(--accent); color:#fff; border:none; border-radius:8px; padding:13px; font-family:var(--font-head); font-weight:700; font-size:1rem; cursor:pointer; }
+  .btn-primary:hover { background:var(--accent2); }
+  .login-hint { text-align:center; color:var(--muted); font-size:.78rem; margin-top:16px; }
+
+  /* APP */
+  #app { display:none; min-height:100vh; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:64px; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+  .brand { font-family:var(--font-head); font-size:1.4rem; font-weight:800; color:var(--accent); }
+  .brand span { color:var(--text); }
+  .topbar-right { display:flex; align-items:center; gap:14px; }
+  .admin-badge { background:rgba(249,115,22,.15); color:var(--accent); border:1px solid rgba(249,115,22,.3); border-radius:20px; padding:4px 12px; font-size:.78rem; font-weight:600; }
+  .btn-logout { background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:7px 14px; font-size:.82rem; cursor:pointer; }
+  .btn-logout:hover { border-color:var(--red); color:var(--red); }
+
+  /* MAIN */
+  .main-content { padding:32px; max-width:1300px; margin:0 auto; }
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; position:relative; overflow:hidden; }
+  .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:2px 2px 0 0; }
+  .stat-card.s-all::before { background:var(--blue); }
+  .stat-card.s-new::before { background:var(--accent); }
+  .stat-card.s-cont::before { background:var(--yellow); }
+  .stat-card.s-conv::before { background:var(--green); }
+  .stat-label { font-size:.75rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:500; margin-bottom:8px; }
+  .stat-num { font-family:var(--font-head); font-size:2rem; font-weight:800; color:var(--text); }
+
+  /* TOOLBAR */
+  .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .search-wrap { position:relative; flex:1; min-width:200px; }
+  .search-wrap input { width:100%; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 38px; color:var(--text); font-family:var(--font-body); font-size:.9rem; outline:none; }
+  .search-wrap input:focus { border-color:var(--accent); }
+  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+  .filter-btns { display:flex; gap:6px; }
+  .flt-btn { background:var(--card); border:1px solid var(--border); color:var(--muted); border-radius:7px; padding:9px 14px; font-size:.8rem; font-weight:500; cursor:pointer; font-family:var(--font-body); }
+  .flt-btn.active, .flt-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(249,115,22,.08); }
+  .btn-add-lead { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 18px; font-family:var(--font-head); font-weight:700; font-size:.9rem; cursor:pointer; white-space:nowrap; }
+  .btn-add-lead:hover { background:var(--accent2); }
+
+  /* TABLE */
+  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  thead th { background:var(--surface); padding:12px 16px; text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600; border-bottom:1px solid var(--border); }
+  tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:rgba(255,255,255,.025); }
+  tbody td { padding:14px 16px; font-size:.88rem; color:var(--text); vertical-align:middle; }
+  .lead-name { font-weight:500; }
+  .lead-email { color:var(--subtle); font-size:.83rem; }
+  .lead-source { background:rgba(59,130,246,.12); color:#93c5fd; border:1px solid rgba(59,130,246,.2); border-radius:5px; padding:2px 8px; font-size:.76rem; font-weight:500; display:inline-block; }
+  .status-badge { border-radius:20px; padding:3px 11px; font-size:.75rem; font-weight:600; display:inline-block; }
+  .status-new { background:rgba(249,115,22,.12); color:var(--accent); border:1px solid rgba(249,115,22,.3); }
+  .status-contacted { background:rgba(234,179,8,.12); color:#facc15; border:1px solid rgba(234,179,8,.3); }
+  .status-converted { background:rgba(34,197,94,.12); color:var(--green); border:1px solid rgba(34,197,94,.3); }
+  .status-select { background:transparent; border:none; font-family:var(--font-body); font-size:.8rem; cursor:pointer; outline:none; }
+  .notes-preview { color:var(--muted); font-size:.82rem; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .notes-preview.empty { color:var(--border); font-style:italic; }
+  .timestamp { color:var(--muted); font-size:.78rem; }
+  .actions { display:flex; gap:6px; }
+  .btn-icon { background:var(--surface); border:1px solid var(--border); color:var(--muted); border-radius:6px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.8rem; transition:all .15s; }
+  .btn-icon:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-icon.del:hover { border-color:var(--red); color:var(--red); }
+  .empty-state { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty-icon { font-size:2.5rem; margin-bottom:12px; }
+
+  /* MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:36px 32px; width:100%; max-width:480px; box-shadow:var(--shadow); max-height:90vh; overflow-y:auto; }
+  .modal-title { font-family:var(--font-head); font-size:1.2rem; font-weight:700; margin-bottom:24px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:.78rem; font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--subtle); margin-bottom:6px; }
+  .form-group input, .form-group select, .form-group textarea { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:11px 13px; color:var(--text); font-family:var(--font-body); font-size:.92rem; outline:none; transition:border-color .2s; }
+  .form-group textarea { resize:vertical; min-height:90px; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--accent); }
+  .form-group select option { background:var(--card); }
+  .modal-actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+  .btn-cancel { background:var(--surface); border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:10px 20px; font-family:var(--font-body); font-size:.9rem; cursor:pointer; }
+  .btn-cancel:hover { border-color:var(--text); color:var(--text); }
+  .btn-save { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 22px; font-family:var(--font-head); font-weight:700; font-size:.9rem; cursor:pointer; }
+  .btn-save:hover { background:var(--accent2); }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Lead<span>Flow</span></div>
+    <div class="login-sub">Mini CRM — Admin Portal</div>
+    <label>Username</label>
+    <input id="l-user" type="text" placeholder="admin" />
+    <label>Password</label>
+    <input id="l-pass" type="password" placeholder="••••••••"
+           onkeydown="if(event.key==='Enter') doLogin()" />
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+    <div class="login-hint">Demo credentials: <b>admin</b> / <b>crm2026</b></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand">Lead<span>Flow</span></div>
+    <div class="topbar-right">
+      <span class="admin-badge">ADMIN</span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card s-all"><div class="stat-label">Total Leads</div><div class="stat-num" id="s-all">0</div></div>
+      <div class="stat-card s-new"><div class="stat-label">New</div><div class="stat-num" id="s-new">0</div></div>
+      <div class="stat-card s-cont"><div class="stat-label">Contacted</div><div class="stat-num" id="s-cont">0</div></div>
+      <div class="stat-card s-conv"><div class="stat-label">Converted</div><div class="stat-num" id="s-conv">0</div></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input id="search-inp" type="text" placeholder="Search by name, email, source…" oninput="renderTable()" />
+      </div>
+      <div class="filter-btns">
+        <button class="flt-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="flt-btn" onclick="setFilter('new',this)">New</button>
+        <button class="flt-btn" onclick="setFilter('contacted',this)">Contacted</button>
+        <button class="flt-btn" onclick="setFilter('converted',this)">Converted</button>
+      </div>
+      <button class="btn-add-lead" onclick="openModal()">+ Add Lead</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name / Email</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Added</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div>No leads found. Click "+ Add Lead" to add your first lead!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add New Lead</div>
+    <div class="form-group">
+      <label>Full Name *</label>
+      <input id="f-name" type="text" placeholder="e.g. Priya Sharma" />
+    </div>
+    <div class="form-group">
+      <label>Email *</label>
+      <input id="f-email" type="email" placeholder="e.g. priya@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input id="f-phone" type="tel" placeholder="e.g. +91 98765 43210" />
+    </div>
+    <div class="form-group">
+      <label>Lead Source</label>
+      <select id="f-source">
+        <option>Contact Form</option>
+        <option>LinkedIn</option>
+        <option>Referral</option>
+        <option>Instagram</option>
+        <option>Cold Email</option>
+        <option>Walk-in</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="converted">Converted</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes / Follow-up</label>
+      <textarea id="f-notes" placeholder="Add follow-up notes…"></textarea>
+    </div>
+    <div class="login-err" id="form-err"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveLead()">Save Lead</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── AUTH ─────────────────────────────────────────────
+const ADMIN = { user: 'admin', pass: 'crm2026' };
+
+function doLogin() {
+  const u = document.getElementById('l-user').value.trim();
+  const p = document.getElementById('l-pass').value;
+  if (u === ADMIN.user && p === ADMIN.pass) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadLeads();
+  } else {
+    document.getElementById('login-err').textContent = 'Invalid credentials. Try admin / crm2026';
+  }
+}
+
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+}
+
+// ── DATA ─────────────────────────────────────────────
+var leads = [];
+var currentFilter = 'all';
+var editingId = null;
+var API = 'http://localhost:5000/api/leads';
+
+// ── LOAD LEADS ────────────────────────────────────────
+async function loadLeads() {
+  try {
+    var res = await fetch(API);
+    leads = await res.json();
+    renderTable();
+  } catch (err) {
+    console.error('Error loading leads:', err);
+    leads = [];
+    renderTable();
+  }
+}
+
+// ── STATS ─────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('s-all').textContent  = leads.length;
+  document.getElementById('s-new').textContent  = leads.filter(function(l){ return l.status === 'new'; }).length;
+  document.getElementById('s-cont').textContent = leads.filter(function(l){ return l.status === 'contacted'; }).length;
+  document.getElementById('s-conv').textContent = leads.filter(function(l){ return l.status === 'converted'; }).length;
+}
+
+// ── FILTER ────────────────────────────────────────────
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.flt-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  renderTable();
+}
+
+// ── RENDER TABLE ──────────────────────────────────────
+function renderTable() {
+  var q = document.getElementById('search-inp').value.toLowerCase();
+  var rows = leads.filter(function(l) {
+    if (currentFilter !== 'all' && l.status !== currentFilter) return false;
+    if (q && l.name.toLowerCase().indexOf(q) === -1 &&
+             l.email.toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+
+  updateStats();
+
+  var tbody = document.getElementById('tbody');
+  var empty = document.getElementById('empty-state');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  var html = '';
+  for (var i = 0; i < rows.length; i++) {
+    var l = rows[i];
+    var date = l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '';
+    html += '<tr>';
+    html += '<td>' + (i+1) + '</td>';
+    html += '<td><div class="lead-name">' + esc(l.name) + '</div><div class="lead-email">' + esc(l.email) + '</div></td>';
+    html += '<td><span class="lead-source">' + esc(l.source) + '</span></td>';
+    html += '<td><span class="status-badge status-' + l.status + '">' + l.status + '</span></td>';
+    html += '<td><div class="notes-preview ' + (l.notes ? '' : 'empty') + '">' + esc(l.notes || 'No notes yet') + '</div></td>';
+    html += '<td><span class="timestamp">' + date + '</span></td>';
+    html += '<td><div class="actions">';
+    html += '<button class="btn-icon" onclick="editLead(\'' + l._id + '\')">✏️</button>';
+    html += '<button class="btn-icon del" onclick="deleteLead(\'' + l._id + '\')">🗑️</button>';
+    html += '</div></td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── MODAL ─────────────────────────────────────────────
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('form-err').textContent = '';
+
+  if (id) {
+    var l = null;
+    for (var i = 0; i < leads.length; i++) {
+      if (leads[i]._id === id) { l = leads[i]; break; }
+    }
+    if (l) {
+      document.getElementById('modal-title').textContent = 'Edit Lead';
+      document.getElementById('f-name').value   = l.name;
+      document.getElementById('f-email').value  = l.email;
+      document.getElementById('f-phone').value  = l.phone || '';
+      document.getElementById('f-source').value = l.source;
+      document.getElementById('f-status').value = l.status;
+      document.getElementById('f-notes').value  = l.notes || '';
+    }
+  } else {
+    document.getElementById('modal-title').textContent = 'Add New Lead';
+    document.getElementById('f-name').value   = '';
+    document.getElementById('f-email').value  = '';
+    document.getElementById('f-phone').value  = '';
+    document.getElementById('f-notes').value  = '';
+    document.getElementById('f-source').value = 'Contact Form';
+    document.getElementById('f-status').value = 'new';
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function editLead(id) { openModal(id); }
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId = null;
+}
+
+// Close modal when clicking outside
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── SAVE LEAD ─────────────────────────────────────────
+async function saveLead() {
+  var name   = document.getElementById('f-name').value.trim();
+  var email  = document.getElementById('f-email').value.trim();
+  var phone  = document.getElementById('f-phone').value.trim();
+  var source = document.getElementById('f-source').value;
+  var status = document.getElementById('f-status').value;
+  var notes  = document.getElementById('f-notes').value.trim();
+
+  if (!name || !email) {
+    document.getElementById('form-err').textContent = 'Name and Email are required!';
+    return;
+  }
+
+  var body = JSON.stringify({ name:name, email:email, phone:phone, source:source, status:status, notes:notes });
+
+  try {
+    if (editingId) {
+      await fetch(API + '/' + editingId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: body
+      });
+    } else {
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body
+      });
+    }
+    closeModal();
+    loadLeads();
+  } catch (err) {
+    console.error('Error saving lead:', err);
+    document.getElementById('form-err').textContent = 'Error saving. Is backend running?';
+  }
+}
+
+// ── DELETE ────────────────────────────────────────────
+async function deleteLead(id) {
+  if (!confirm('Delete this lead?')) return;
+  try {
+    await fetch(API + '/' + id, { method: 'DELETE' });
+    loadLeads();
+  } catch (err) {
+    console.error('Error deleting:', err);
+  }
+}
+
+// ── KEYBOARD ──────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>
